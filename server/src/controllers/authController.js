@@ -52,6 +52,7 @@ async function signup(req, res, next) {
         id: user.id,
         name: user.name,
         email: user.email,
+        consent: user.consent,
         createdAt: user.createdAt,
       },
     });
@@ -90,6 +91,7 @@ async function login(req, res, next) {
         id: user.id,
         name: user.name,
         email: user.email,
+        consent: user.consent,
         createdAt: user.createdAt,
       },
     });

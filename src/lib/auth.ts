@@ -4,6 +4,7 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
+  consent: boolean | null;
   createdAt: string;
 }
 
@@ -55,4 +56,17 @@ export function clearAuthSession() {
 
 export function isAuthenticated() {
   return Boolean(getAuthToken());
+}
+
+export function updateStoredUser(user: AuthUser) {
+  const session = getAuthSession();
+
+  if (!session) {
+    return;
+  }
+
+  saveAuthSession({
+    ...session,
+    user,
+  });
 }

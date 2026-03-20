@@ -19,6 +19,24 @@ async function predict(req, res, next) {
     const payload = predictionSchema.parse(req.body);
     const predictionResult = predictDiabetes(payload);
 
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, consent: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.consent !== true) {
+      return res.status(200).json({
+        ...payload,
+        predictionResult,
+        createdAt: new Date().toISOString(),
+        saved: false,
+      });
+    }
+
     const record = await prisma.diabetesRecord.create({
       data: {
         userId: req.user.id,
@@ -27,7 +45,10 @@ async function predict(req, res, next) {
       },
     });
 
-    return res.status(201).json(record);
+    return res.status(201).json({
+      ...record,
+      saved: true,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: error.issues[0]?.message || "Invalid prediction input." });

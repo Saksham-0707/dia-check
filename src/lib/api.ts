@@ -18,6 +18,14 @@ export interface DiabetesRecord extends PredictionInput {
   createdAt: string;
 }
 
+export interface PredictionResponse extends PredictionInput {
+  predictionResult: "Diabetic" | "Not Diabetic";
+  createdAt: string;
+  saved: boolean;
+  id?: number;
+  userId?: number;
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000/api";
 
@@ -76,7 +84,7 @@ export function login(input: { email: string; password: string }) {
 }
 
 export function createPrediction(input: PredictionInput) {
-  return request<DiabetesRecord>(
+  return request<PredictionResponse>(
     "/diabetes/predict",
     {
       method: "POST",
@@ -92,4 +100,14 @@ export function getPredictionHistory() {
 
 export function getPredictionById(id: number) {
   return request<DiabetesRecord>(`/diabetes/${id}`, undefined, true);
+}
+
+export function updateConsent() {
+  return request<{ message: string; user: AuthSession["user"] }>(
+    "/user/consent",
+    {
+      method: "POST",
+    },
+    true,
+  );
 }

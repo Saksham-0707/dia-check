@@ -3,6 +3,7 @@ const express = require("express");
 
 const authRoutes = require("./routes/authRoutes");
 const diabetesRoutes = require("./routes/diabetesRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/diabetes", diabetesRoutes);
+app.use("/api/user", userRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

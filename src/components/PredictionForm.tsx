@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
-import { createPrediction, type DiabetesRecord, type PredictionInput } from "@/lib/api";
+import { createPrediction, type DiabetesRecord, type PredictionInput, type PredictionResponse } from "@/lib/api";
 import ResultCard from "@/components/ResultCard";
 
 interface PredictionFormProps {
@@ -37,7 +37,7 @@ const inputClass =
 
 export default function PredictionForm({ onPredicted }: PredictionFormProps) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<DiabetesRecord | null>(null);
+  const [result, setResult] = useState<PredictionResponse | null>(null);
   const [serverError, setServerError] = useState("");
 
   const {
@@ -64,7 +64,9 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
       });
 
       setResult(record);
-      onPredicted?.(record);
+      if (record.saved && record.id && record.userId) {
+        onPredicted?.(record as DiabetesRecord);
+      }
     } catch (error) {
       setServerError(error instanceof Error ? error.message : "Prediction failed.");
     } finally {
@@ -235,7 +237,7 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
           )}
         </button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Each prediction is stored securely in your account history.
+          Predictions are stored only after you give consent.
         </p>
       </div>
     </form>

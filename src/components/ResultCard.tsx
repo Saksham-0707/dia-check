@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { AlertTriangle, CheckCircle, RotateCcw } from "lucide-react";
 
-import type { DiabetesRecord } from "@/lib/api";
+import type { PredictionResponse } from "@/lib/api";
 
 interface ResultCardProps {
-  record: DiabetesRecord;
+  record: PredictionResponse;
   onReset?: () => void;
 }
 
@@ -85,6 +85,14 @@ export default function ResultCard({ record, onReset }: ResultCardProps) {
           </p>
         </div>
 
+        {!record.saved && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/30">
+            <p className="text-center text-xs text-amber-700 dark:text-amber-300">
+              This result was not stored because consent for saving prediction history has not been granted.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           {onReset && (
             <button
@@ -95,12 +103,14 @@ export default function ResultCard({ record, onReset }: ResultCardProps) {
               New Assessment
             </button>
           )}
-          <Link
-            href="/history"
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90"
-          >
-            View History
-          </Link>
+          {record.saved && (
+            <Link
+              href="/history"
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90"
+            >
+              View History
+            </Link>
+          )}
         </div>
       </div>
     </div>

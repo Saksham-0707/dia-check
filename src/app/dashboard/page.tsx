@@ -5,16 +5,24 @@ import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, ArrowRight, CheckCircle, ClipboardList } from "lucide-react";
 
 import AuthGuard from "@/components/AuthGuard";
+import ConsentModal from "@/components/ConsentModal";
 import HistoryTable from "@/components/HistoryTable";
 import Navbar from "@/components/Navbar";
 import PredictionForm from "@/components/PredictionForm";
 import StatCard from "@/components/StatCard";
-import { getPredictionHistory, type DiabetesRecord } from "@/lib/api";
+import { getPredictionHistory, updateConsent, type DiabetesRecord } from "@/lib/api";
+import { getAuthUser, updateStoredUser } from "@/lib/auth";
 
 export default function DashboardPage() {
   const [predictions, setPredictions] = useState<DiabetesRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentLoading, setConsentLoading] = useState(false);
+
+  useEffect(() => {
+    setShowConsentModal(getAuthUser()?.consent !== true);
+  }, []);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -145,6 +153,23 @@ export default function DashboardPage() {
             </section>
           </div>
         </main>
+        <ConsentModal
+          open={showConsentModal}
+          loading={consentLoading}
+          onDecline={() => setShowConsentModal(false)}
+          onAccept={async () => {
+            try {
+              setConsentLoading(true);
+              const response = await updateConsent();
+              updateStoredUser(response.user);
+              setShowConsentModal(false);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Failed to update consent.");
+            } finally {
+              setConsentLoading(false);
+            }
+          }}
+        />
       </div>
     </AuthGuard>
   );
