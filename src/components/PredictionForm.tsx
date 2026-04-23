@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
-import { createPrediction, type DiabetesRecord, type PredictionInput, type PredictionResponse } from "@/lib/api";
+import { createPrediction, type PredictionInput, type PredictionResponse } from "@/lib/api";
+import { getAuthUser } from "@/lib/auth";
+import { predictionFields } from "@/lib/prediction-fields";
 import ResultCard from "@/components/ResultCard";
-
-interface PredictionFormProps {
-  onPredicted?: (record: DiabetesRecord) => void;
-}
 
 interface FieldWrapperProps {
   label: string;
@@ -35,10 +33,16 @@ function FieldWrapper({ label, helper, error, children }: FieldWrapperProps) {
 const inputClass =
   "w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40";
 
-export default function PredictionForm({ onPredicted }: PredictionFormProps) {
+export default function PredictionForm() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [serverError, setServerError] = useState("");
+  const canSave = getAuthUser()?.consent === true;
+  const [saveResult, setSaveResult] = useState(canSave);
+
+  useEffect(() => {
+    setSaveResult(canSave);
+  }, [canSave]);
 
   const {
     register,
@@ -52,21 +56,15 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
     setServerError("");
 
     try {
-      const record = await createPrediction({
-        pregnancies: Number(data.pregnancies),
-        glucose: Number(data.glucose),
-        bloodPressure: Number(data.bloodPressure),
-        skinThickness: Number(data.skinThickness),
-        insulin: Number(data.insulin),
-        bmi: Number(data.bmi),
-        diabetesPedigreeFunction: Number(data.diabetesPedigreeFunction),
-        age: Number(data.age),
-      });
+      const payload = predictionFields.reduce<PredictionInput>((current, field) => {
+        current[field.name] =
+          field.type === "number" ? Number(data[field.name]) : String(data[field.name]);
+        return current;
+      }, {});
+      payload.saveResult = canSave && saveResult;
+      const record = await createPrediction(payload);
 
       setResult(record);
-      if (record.saved && record.id && record.userId) {
-        onPredicted?.(record as DiabetesRecord);
-      }
     } catch (error) {
       setServerError(error instanceof Error ? error.message : "Prediction failed.");
     } finally {
@@ -87,132 +85,54 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <FieldWrapper
-          label="Pregnancies"
-          helper="Number of times pregnant"
-          error={errors.pregnancies?.message}
-        >
-          <input
-            type="number"
-            placeholder="e.g. 2"
-            className={inputClass}
-            {...register("pregnancies", {
-              required: "Pregnancies is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper
-          label="Glucose"
-          helper="Plasma glucose concentration"
-          error={errors.glucose?.message}
-        >
-          <input
-            type="number"
-            step="0.1"
-            placeholder="e.g. 148"
-            className={inputClass}
-            {...register("glucose", {
-              required: "Glucose is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper
-          label="Blood Pressure"
-          helper="Diastolic blood pressure (mm Hg)"
-          error={errors.bloodPressure?.message}
-        >
-          <input
-            type="number"
-            step="0.1"
-            placeholder="e.g. 72"
-            className={inputClass}
-            {...register("bloodPressure", {
-              required: "Blood pressure is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper
-          label="Skin Thickness"
-          helper="Triceps skin fold thickness (mm)"
-          error={errors.skinThickness?.message}
-        >
-          <input
-            type="number"
-            step="0.1"
-            placeholder="e.g. 35"
-            className={inputClass}
-            {...register("skinThickness", {
-              required: "Skin thickness is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper
-          label="Insulin"
-          helper="2-hour serum insulin"
-          error={errors.insulin?.message}
-        >
-          <input
-            type="number"
-            step="0.1"
-            placeholder="e.g. 120"
-            className={inputClass}
-            {...register("insulin", {
-              required: "Insulin is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper label="BMI" helper="Body mass index" error={errors.bmi?.message}>
-          <input
-            type="number"
-            step="0.1"
-            placeholder="e.g. 33.6"
-            className={inputClass}
-            {...register("bmi", {
-              required: "BMI is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper
-          label="Diabetes Pedigree Function"
-          helper="Family-history influence score"
-          error={errors.diabetesPedigreeFunction?.message}
-        >
-          <input
-            type="number"
-            step="0.001"
-            placeholder="e.g. 0.627"
-            className={inputClass}
-            {...register("diabetesPedigreeFunction", {
-              required: "Pedigree function is required",
-              min: { value: 0, message: "Cannot be negative" },
-            })}
-          />
-        </FieldWrapper>
-
-        <FieldWrapper label="Age" helper="Age in years" error={errors.age?.message}>
-          <input
-            type="number"
-            placeholder="e.g. 50"
-            className={inputClass}
-            {...register("age", {
-              required: "Age is required",
-              min: { value: 1, message: "Must be at least 1" },
-              max: { value: 120, message: "Must be at most 120" },
-            })}
-          />
-        </FieldWrapper>
+        {predictionFields.map((field) => (
+          <FieldWrapper
+            key={field.name}
+            label={field.label}
+            helper={field.helper}
+            error={errors[field.name]?.message}
+          >
+            {field.type === "select" ? (
+              <select
+                className={inputClass}
+                defaultValue=""
+                {...register(field.name, {
+                  required: `${field.label} is required`,
+                })}
+              >
+                <option value="" disabled>
+                  Select {field.label}
+                </option>
+                {field.options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="number"
+                step={field.step ?? "any"}
+                min={field.min}
+                max={field.max}
+                placeholder={`Enter ${field.label}`}
+                className={inputClass}
+                {...register(field.name, {
+                  required: `${field.label} is required`,
+                  valueAsNumber: true,
+                  min:
+                    field.min === undefined
+                      ? undefined
+                      : { value: field.min, message: `Must be at least ${field.min}` },
+                  max:
+                    field.max === undefined
+                      ? undefined
+                      : { value: field.max, message: `Must be at most ${field.max}` },
+                })}
+              />
+            )}
+          </FieldWrapper>
+        ))}
       </div>
 
       {serverError && (
@@ -220,6 +140,24 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
           {serverError}
         </div>
       )}
+
+      <label className="flex items-start gap-3 rounded-xl border border-border bg-background p-4 text-sm">
+        <input
+          type="checkbox"
+          checked={canSave && saveResult}
+          disabled={!canSave}
+          onChange={(event) => setSaveResult(event.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-border"
+        />
+        <span>
+          <span className="block font-semibold text-foreground">Save this result</span>
+          <span className="block text-xs text-muted-foreground">
+            {canSave
+              ? "Saved results appear in your history."
+              : "Enable prediction history consent to save results."}
+          </span>
+        </span>
+      </label>
 
       <div className="pt-2">
         <button
@@ -237,7 +175,7 @@ export default function PredictionForm({ onPredicted }: PredictionFormProps) {
           )}
         </button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Predictions are stored only after you give consent.
+          Your values are sent to the Python model API for prediction.
         </p>
       </div>
     </form>

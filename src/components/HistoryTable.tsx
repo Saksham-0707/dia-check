@@ -4,12 +4,12 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { AlertTriangle, CheckCircle, Eye } from "lucide-react";
 
-import type { DiabetesRecord } from "@/lib/api";
+import type { PredictionRecord } from "@/lib/api";
 
 type Filter = "all" | "diabetic" | "not-diabetic";
 
 interface HistoryTableProps {
-  predictions: DiabetesRecord[];
+  predictions: PredictionRecord[];
   onSelect?: (id: number) => void;
   selectedId?: number;
 }
@@ -23,11 +23,11 @@ export default function HistoryTable({
 
   const filtered = predictions.filter((prediction) => {
     if (filter === "diabetic") {
-      return prediction.predictionResult === "Diabetic";
+      return prediction.prediction === 1;
     }
 
     if (filter === "not-diabetic") {
-      return prediction.predictionResult === "Not Diabetic";
+      return prediction.prediction === 0;
     }
 
     return true;
@@ -69,8 +69,10 @@ export default function HistoryTable({
               <tr className="border-b border-border bg-muted/40">
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">#</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Glucose</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">HbA1c</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">BMI</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Probability</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Result</th>
                 {onSelect && (
                   <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -94,10 +96,14 @@ export default function HistoryTable({
                       {format(new Date(record.createdAt), "h:mm a")}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-foreground">{record.glucose}</td>
-                  <td className="px-5 py-4 text-foreground">{record.bmi}</td>
+                  <td className="px-5 py-4 text-foreground">{record.Age}</td>
+                  <td className="px-5 py-4 text-foreground">{record.HbA1c}</td>
+                  <td className="px-5 py-4 text-foreground">{record.BMI}</td>
+                  <td className="px-5 py-4 text-foreground">
+                    {(record.probability * 100).toFixed(1)}%
+                  </td>
                   <td className="px-5 py-4">
-                    {record.predictionResult === "Diabetic" ? (
+                    {record.prediction === 1 ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">
                         <AlertTriangle className="h-3 w-3" />
                         Diabetic

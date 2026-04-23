@@ -10,11 +10,11 @@ import HistoryTable from "@/components/HistoryTable";
 import Navbar from "@/components/Navbar";
 import PredictionForm from "@/components/PredictionForm";
 import StatCard from "@/components/StatCard";
-import { getPredictionHistory, updateConsent, type DiabetesRecord } from "@/lib/api";
+import { getPredictionHistory, updateConsent, type PredictionRecord } from "@/lib/api";
 import { getAuthUser, updateStoredUser } from "@/lib/auth";
 
 export default function DashboardPage() {
-  const [predictions, setPredictions] = useState<DiabetesRecord[]>([]);
+  const [predictions, setPredictions] = useState<PredictionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   const total = predictions.length;
   const diabeticCount = predictions.filter(
-    (prediction) => prediction.predictionResult === "Diabetic",
+    (prediction) => prediction.prediction === 1,
   ).length;
   const recent = predictions.slice(0, 5);
 
@@ -68,8 +68,8 @@ export default function DashboardPage() {
                 Diabetes prediction dashboard with account-based history tracking
               </h1>
               <p className="mt-3 max-w-2xl text-sm text-blue-100">
-                Submit patient metrics, get an instant rule-based diabetes prediction, and keep
-                each record attached to your account in PostgreSQL.
+                Submit patient metrics, get an instant ML prediction, and save approved results
+                in PostgreSQL.
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
               title="Not Diabetic"
               value={total - diabeticCount}
               icon={CheckCircle}
-              description="Results below the current risk rule"
+              description="Results below the model threshold"
               variant="success"
               delay={200}
             />
@@ -109,13 +109,11 @@ export default function DashboardPage() {
                   Enter diabetes assessment values
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  The current prediction rule marks a record as diabetic when glucose is above 140
-                  or BMI is above 30.
+                  The trained Python model returns a probability, thresholded prediction, and the
+                  top SHAP explanation features.
                 </p>
               </div>
-              <PredictionForm
-                onPredicted={(record) => setPredictions((current) => [record, ...current])}
-              />
+              <PredictionForm />
             </section>
 
             <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">

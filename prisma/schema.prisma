@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  password        String
+  consent         Boolean?
+  createdAt       DateTime         @default(now())
+  diabetesRecords DiabetesRecord[]
+  predictions     Prediction[]
+}
+
+model DiabetesRecord {
+  id                       Int      @id @default(autoincrement())
+  userId                   Int
+  pregnancies              Int
+  glucose                  Float
+  bloodPressure            Float
+  skinThickness            Float
+  insulin                  Float
+  bmi                      Float
+  diabetesPedigreeFunction Float
+  age                      Int
+  predictionResult         String
+  createdAt                DateTime @default(now())
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Prediction {
+  id     Int  @id @default(autoincrement())
+  userId Int?
+
+  HbA1c              Float
+  Age                Int
+  BMI                Float
+  QualityOfLifeScore Float
+
+  FrequentUrination             String
+  Hypertension                  String
+  ExcessiveThirst               String
+  UnexplainedWeightLoss         String
+  FatigueLevels                 String
+  BlurredVision                 String
+  SlowHealingSores              String
+  TinglingHandsFeet             String
+  SleepQuality                  String
+  PhysicalActivity              String
+  DietQuality                   String
+  AlcoholConsumption            String
+  EducationLevel                String
+  SocioeconomicStatus           String
+  HealthLiteracy                String
+  Ethnicity                     String
+  Gender                        String
+  FamilyHistoryDiabetes         String
+  PreviousPreDiabetes           String
+  GestationalDiabetes           String
+  PolycysticOvarySyndrome       String
+  MedicalCheckupsFrequency      String
+  WaterQuality                  String
+  OccupationalExposureChemicals String
+
+  prediction  Int
+  probability Float
+  threshold   Float
+  explanation Json?
+
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
