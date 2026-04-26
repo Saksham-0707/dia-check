@@ -50,7 +50,7 @@ The frontend already existed as a Next.js app in this repository, so the React c
 Create a `.env` file in the project root using `.env.example`:
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_sOrBRKJP07zd@ep-sweet-boat-anc062vj-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL=""
 JWT_SECRET="replace-with-a-long-random-secret"
 PORT=4000
 FRONTEND_URL="http://localhost:3000"
