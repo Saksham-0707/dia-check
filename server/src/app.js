@@ -6,9 +6,35 @@ const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+  "http://127.0.0.1:3002",
+];
+
+const allowedOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if ([...defaultAllowedOrigins, ...allowedOrigins].includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Save-Result"],
     credentials: false,
   }),
 );

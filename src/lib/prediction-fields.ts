@@ -1,13 +1,14 @@
 export type PredictionFieldOption = {
   label: string;
-  value: string;
+  value: number;
 };
 
 export type PredictionField = {
   name: string;
   label: string;
-  type: "number" | "select";
+  type: "number" | "select" | "slider";
   helper: string;
+  placeholder?: string;
   step?: string;
   min?: number;
   max?: number;
@@ -15,43 +16,40 @@ export type PredictionField = {
 };
 
 const yesNoOptions: PredictionFieldOption[] = [
-  { label: "No", value: "0" },
-  { label: "Yes", value: "1" },
-];
-
-const lowMediumHighOptions: PredictionFieldOption[] = [
-  { label: "Low", value: "0" },
-  { label: "Moderate", value: "1" },
-  { label: "High", value: "2" },
+  { label: "No", value: 0 },
+  { label: "Yes", value: 1 },
 ];
 
 export const predictionFields: PredictionField[] = [
   {
     name: "HbA1c",
-    label: "HbA1c",
+    label: "HbA1c (%)",
     type: "number",
-    helper: "Hemoglobin A1c percentage",
+    helper: "Typical range: 4.0 - 10.0",
+    placeholder: "Example: 5.7",
     step: "0.1",
-    min: 0,
-    max: 20,
+    min: 4,
+    max: 10,
   },
   {
     name: "Age",
     label: "Age",
     type: "number",
-    helper: "Age in years",
+    helper: "Enter age in years (20-90)",
+    placeholder: "Example: 45",
     step: "1",
-    min: 1,
-    max: 120,
+    min: 20,
+    max: 90,
   },
   {
     name: "BMI",
     label: "BMI",
     type: "number",
-    helper: "Body mass index",
+    helper: "Body Mass Index (15-40)",
+    placeholder: "Example: 24.8",
     step: "0.1",
-    min: 0,
-    max: 100,
+    min: 15,
+    max: 40,
   },
   {
     name: "FrequentUrination",
@@ -84,9 +82,11 @@ export const predictionFields: PredictionField[] = [
   {
     name: "FatigueLevels",
     label: "Fatigue Levels",
-    type: "select",
-    helper: "Typical fatigue level",
-    options: lowMediumHighOptions,
+    type: "slider",
+    helper: "Rate fatigue from 0 (none) to 10 (severe)",
+    step: "1",
+    min: 0,
+    max: 10,
   },
   {
     name: "BlurredVision",
@@ -112,30 +112,39 @@ export const predictionFields: PredictionField[] = [
   {
     name: "SleepQuality",
     label: "Sleep Quality",
-    type: "select",
-    helper: "Typical sleep quality",
-    options: lowMediumHighOptions,
+    type: "slider",
+    helper: "Rate sleep quality from 4 (poor) to 10 (excellent)",
+    step: "1",
+    min: 4,
+    max: 10,
   },
   {
     name: "PhysicalActivity",
     label: "Physical Activity",
-    type: "select",
-    helper: "Typical activity level",
-    options: lowMediumHighOptions,
+    type: "slider",
+    helper: "Hours of physical activity per week (0-10)",
+    step: "1",
+    min: 0,
+    max: 10,
   },
   {
     name: "DietQuality",
     label: "Diet Quality",
-    type: "select",
-    helper: "Typical diet quality",
-    options: lowMediumHighOptions,
+    type: "slider",
+    helper: "Rate diet quality from 0 (poor) to 10 (excellent)",
+    step: "1",
+    min: 0,
+    max: 10,
   },
   {
     name: "AlcoholConsumption",
     label: "Alcohol Consumption",
-    type: "select",
-    helper: "Alcohol consumption frequency",
-    options: lowMediumHighOptions,
+    type: "number",
+    helper: "Alcohol units per week (0-20)",
+    placeholder: "Example: 2",
+    step: "1",
+    min: 0,
+    max: 20,
   },
   {
     name: "EducationLevel",
@@ -143,10 +152,10 @@ export const predictionFields: PredictionField[] = [
     type: "select",
     helper: "Highest education level",
     options: [
-      { label: "Primary", value: "0" },
-      { label: "Secondary", value: "1" },
-      { label: "Graduate", value: "2" },
-      { label: "Postgraduate", value: "3" },
+      { label: "None", value: 0 },
+      { label: "High School", value: 1 },
+      { label: "Bachelor's", value: 2 },
+      { label: "Higher", value: 3 },
     ],
   },
   {
@@ -154,20 +163,27 @@ export const predictionFields: PredictionField[] = [
     label: "Socioeconomic Status",
     type: "select",
     helper: "Socioeconomic category",
-    options: lowMediumHighOptions,
+    options: [
+      { label: "Low", value: 0 },
+      { label: "Middle", value: 1 },
+      { label: "High", value: 2 },
+    ],
   },
   {
     name: "HealthLiteracy",
     label: "Health Literacy",
-    type: "select",
-    helper: "Health literacy level",
-    options: lowMediumHighOptions,
+    type: "slider",
+    helper: "Rate health literacy from 0 (low) to 10 (high)",
+    step: "1",
+    min: 0,
+    max: 10,
   },
   {
     name: "QualityOfLifeScore",
     label: "Quality Of Life Score",
     type: "number",
-    helper: "Quality of life score",
+    helper: "Quality of life score (0-100)",
+    placeholder: "Example: 72",
     step: "1",
     min: 0,
     max: 100,
@@ -178,10 +194,10 @@ export const predictionFields: PredictionField[] = [
     type: "select",
     helper: "Ethnicity category used by the trained model",
     options: [
-      { label: "Category 0", value: "0" },
-      { label: "Category 1", value: "1" },
-      { label: "Category 2", value: "2" },
-      { label: "Category 3", value: "3" },
+      { label: "Caucasian", value: 0 },
+      { label: "African American", value: 1 },
+      { label: "Asian", value: 2 },
+      { label: "Other", value: 3 },
     ],
   },
   {
@@ -190,9 +206,8 @@ export const predictionFields: PredictionField[] = [
     type: "select",
     helper: "Gender category used by the trained model",
     options: [
-      { label: "Female", value: "0" },
-      { label: "Male", value: "1" },
-      { label: "Other", value: "2" },
+      { label: "Male", value: 0 },
+      { label: "Female", value: 1 },
     ],
   },
   {
@@ -226,21 +241,22 @@ export const predictionFields: PredictionField[] = [
   {
     name: "MedicalCheckupsFrequency",
     label: "Medical Checkups Frequency",
-    type: "select",
-    helper: "Medical checkup frequency",
-    options: [
-      { label: "Rarely", value: "0" },
-      { label: "Yearly", value: "1" },
-      { label: "Every 6 months", value: "2" },
-      { label: "Every 3 months", value: "3" },
-    ],
+    type: "number",
+    helper: "Medical checkups per year (0-4)",
+    placeholder: "Example: 1",
+    step: "1",
+    min: 0,
+    max: 4,
   },
   {
     name: "WaterQuality",
     label: "Water Quality",
     type: "select",
     helper: "Drinking water quality",
-    options: lowMediumHighOptions,
+    options: [
+      { label: "Good", value: 0 },
+      { label: "Poor", value: 1 },
+    ],
   },
   {
     name: "OccupationalExposureChemicals",

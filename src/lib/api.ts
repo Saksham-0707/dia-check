@@ -1,6 +1,6 @@
 import { clearAuthSession, getAuthToken, type AuthSession } from "@/lib/auth";
 
-export type PredictionInput = Record<string, number | string | boolean>;
+export type PredictionInput = Record<string, number>;
 
 export interface ShapExplanation {
   feature: string;
@@ -124,8 +124,9 @@ export function login(input: { email: string; password: string }) {
   });
 }
 
-export function createPrediction(input: PredictionInput) {
+export function createPrediction(input: PredictionInput, saveResult = false) {
   const headers = getAuthenticatedApiHeaders();
+  headers.set("X-Save-Result", saveResult ? "true" : "false");
 
   return fetch("/api/predict", {
     method: "POST",

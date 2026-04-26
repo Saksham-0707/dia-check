@@ -6,9 +6,66 @@ import { getAuthenticatedUser } from "@/lib/server-auth";
 const FASTAPI_PREDICT_URL =
   process.env.PYTHON_PREDICT_URL || "http://127.0.0.1:8000/predict";
 
-const numericFields = ["HbA1c", "Age", "BMI", "QualityOfLifeScore"] as const;
+const modelFieldRanges = {
+  HbA1c: { min: 4, max: 10 },
+  Age: { min: 20, max: 90 },
+  BMI: { min: 15, max: 40 },
+  FrequentUrination: { min: 0, max: 1 },
+  Hypertension: { min: 0, max: 1 },
+  ExcessiveThirst: { min: 0, max: 1 },
+  UnexplainedWeightLoss: { min: 0, max: 1 },
+  FatigueLevels: { min: 0, max: 10 },
+  BlurredVision: { min: 0, max: 1 },
+  SlowHealingSores: { min: 0, max: 1 },
+  TinglingHandsFeet: { min: 0, max: 1 },
+  SleepQuality: { min: 4, max: 10 },
+  PhysicalActivity: { min: 0, max: 10 },
+  DietQuality: { min: 0, max: 10 },
+  AlcoholConsumption: { min: 0, max: 20 },
+  EducationLevel: { min: 0, max: 3 },
+  SocioeconomicStatus: { min: 0, max: 2 },
+  HealthLiteracy: { min: 0, max: 10 },
+  QualityOfLifeScore: { min: 0, max: 100 },
+  Ethnicity: { min: 0, max: 3 },
+  Gender: { min: 0, max: 1 },
+  FamilyHistoryDiabetes: { min: 0, max: 1 },
+  PreviousPreDiabetes: { min: 0, max: 1 },
+  GestationalDiabetes: { min: 0, max: 1 },
+  PolycysticOvarySyndrome: { min: 0, max: 1 },
+  MedicalCheckupsFrequency: { min: 0, max: 4 },
+  WaterQuality: { min: 0, max: 1 },
+  OccupationalExposureChemicals: { min: 0, max: 1 },
+} as const;
 
-const categoricalFields = [
+const integerFields = new Set([
+  "Age",
+  "FrequentUrination",
+  "Hypertension",
+  "ExcessiveThirst",
+  "UnexplainedWeightLoss",
+  "FatigueLevels",
+  "BlurredVision",
+  "SlowHealingSores",
+  "TinglingHandsFeet",
+  "SleepQuality",
+  "PhysicalActivity",
+  "DietQuality",
+  "AlcoholConsumption",
+  "EducationLevel",
+  "SocioeconomicStatus",
+  "HealthLiteracy",
+  "Ethnicity",
+  "Gender",
+  "FamilyHistoryDiabetes",
+  "PreviousPreDiabetes",
+  "GestationalDiabetes",
+  "PolycysticOvarySyndrome",
+  "MedicalCheckupsFrequency",
+  "WaterQuality",
+  "OccupationalExposureChemicals",
+]);
+
+const stringStorageFields = [
   "FrequentUrination",
   "Hypertension",
   "ExcessiveThirst",
@@ -35,11 +92,8 @@ const categoricalFields = [
   "OccupationalExposureChemicals",
 ] as const;
 
-type NumericField = (typeof numericFields)[number];
-type CategoricalField = (typeof categoricalFields)[number];
-
-type PredictionPayload = Record<NumericField, number> &
-  Record<CategoricalField, string>;
+type ModelField = keyof typeof modelFieldRanges;
+type PredictionPayload = Record<ModelField, number>;
 
 type FastApiPrediction = {
   prediction: number;
@@ -71,27 +125,29 @@ function validatePayload(input: unknown): PredictionPayload | NextResponse {
   const body = input as Record<string, unknown>;
   const payload = {} as PredictionPayload;
 
-  for (const field of numericFields) {
+  for (const [field, range] of Object.entries(modelFieldRanges) as [
+    ModelField,
+    { min: number; max: number },
+  ][]) {
     if (!(field in body)) {
       return badRequest(`${field} is required.`);
     }
 
-    const value = Number(body[field]);
+    if (typeof body[field] !== "number") {
+      return badRequest(`${field} must be a number.`);
+    }
+
+    const value = body[field];
     if (!Number.isFinite(value)) {
       return badRequest(`${field} must be a valid number.`);
     }
 
-    payload[field] = field === "Age" ? Math.trunc(value) : value;
-  }
-
-  for (const field of categoricalFields) {
-    if (!(field in body)) {
-      return badRequest(`${field} is required.`);
+    if (value < range.min || value > range.max) {
+      return badRequest(`${field} must be between ${range.min} and ${range.max}.`);
     }
 
-    const value = body[field];
-    if (typeof value !== "string" || value.trim() === "") {
-      return badRequest(`${field} must be a non-empty string.`);
+    if (integerFields.has(field) && !Number.isInteger(value)) {
+      return badRequest(`${field} must be a whole number.`);
     }
 
     payload[field] = value;
@@ -109,7 +165,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const saveResult = shouldSaveResult(body);
+    const saveResult =
+      request.headers.get("X-Save-Result") === "true" || shouldSaveResult(body);
     const payload = validatePayload(body);
 
     if (payload instanceof NextResponse) {
@@ -153,10 +210,22 @@ export async function POST(request: Request) {
       });
     }
 
+    const stringStorageData = stringStorageFields.reduce(
+      (current, field) => {
+        current[field] = String(payload[field]);
+        return current;
+      },
+      {} as Record<(typeof stringStorageFields)[number], string>,
+    );
+
     const savedPrediction = await prisma.prediction.create({
       data: {
         userId: user.id,
-        ...payload,
+        HbA1c: payload.HbA1c,
+        Age: payload.Age,
+        BMI: payload.BMI,
+        QualityOfLifeScore: payload.QualityOfLifeScore,
+        ...stringStorageData,
         prediction: predictionData.prediction,
         probability: predictionData.probability,
         threshold: predictionData.threshold,
