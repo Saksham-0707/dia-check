@@ -23,10 +23,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json(predictions);
   } catch (error) {
+    console.error("Failed to load prediction history.", error);
+
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Failed to load prediction history.",
+        message: "Failed to load prediction history. Please try again.",
       },
       { status: 500 },
     );

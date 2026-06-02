@@ -235,6 +235,10 @@ function badRequest(message: string) {
   return NextResponse.json({ message }, { status: 400 });
 }
 
+function logServerError(context: string, error: unknown) {
+  console.error(context, error);
+}
+
 function validatePayload(input: unknown): PredictionPayload | NextResponse {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return badRequest("Request body must be a JSON object.");
@@ -339,20 +343,33 @@ export async function POST(request: Request) {
       {} as Record<(typeof stringStorageFields)[number], string>,
     );
 
-    const savedPrediction = await prisma.prediction.create({
-      data: {
-        userId: user.id,
-        HbA1c: payload.HbA1c,
-        Age: payload.Age,
-        BMI: payload.BMI,
-        QualityOfLifeScore: payload.QualityOfLifeScore,
-        ...stringStorageData,
-        prediction: predictionData.prediction,
-        probability: predictionData.probability,
-        threshold: predictionData.threshold,
-        explanation: predictionData.explanation ?? undefined,
-      },
-    });
+    const savedPrediction = await prisma.prediction
+      .create({
+        data: {
+          userId: user.id,
+          HbA1c: payload.HbA1c,
+          Age: payload.Age,
+          BMI: payload.BMI,
+          QualityOfLifeScore: payload.QualityOfLifeScore,
+          ...stringStorageData,
+          prediction: predictionData.prediction,
+          probability: predictionData.probability,
+          threshold: predictionData.threshold,
+          explanation: predictionData.explanation ?? undefined,
+        },
+      })
+      .catch((error) => {
+        logServerError("Failed to save prediction result.", error);
+        return null;
+      });
+
+    if (!savedPrediction) {
+      return NextResponse.json({
+        ...predictionData,
+        humanExplanation,
+        saved: false,
+      });
+    }
 
     return NextResponse.json({
       ...predictionData,
@@ -362,10 +379,11 @@ export async function POST(request: Request) {
       saved: true,
     });
   } catch (error) {
+    logServerError("Prediction request failed.", error);
+
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Unable to reach prediction API.",
+        message: "Something went wrong while creating your prediction. Please try again.",
       },
       { status: 500 },
     );

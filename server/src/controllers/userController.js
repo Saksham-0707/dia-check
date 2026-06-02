@@ -18,7 +18,10 @@ async function updateConsent(req, res, next) {
       },
     });
   } catch (error) {
-    return next(error);
+    console.error("Consent update failed.", error);
+    return res.status(500).json({
+      message: "Unable to update consent right now. Please try again later.",
+    });
   }
 }
 

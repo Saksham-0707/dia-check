@@ -9,6 +9,10 @@ const baseAuthSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
+function logAuthError(action, error) {
+  console.error(`Auth ${action} failed.`, error);
+}
+
 function createToken(user) {
   return jwt.sign(
     {
@@ -61,7 +65,10 @@ async function signup(req, res, next) {
       return res.status(400).json({ message: error.issues[0]?.message || "Invalid signup data." });
     }
 
-    return next(error);
+    logAuthError("signup", error);
+    return res.status(500).json({
+      message: "Unable to create your account right now. Please try again later.",
+    });
   }
 }
 
@@ -100,7 +107,10 @@ async function login(req, res, next) {
       return res.status(400).json({ message: error.issues[0]?.message || "Invalid login data." });
     }
 
-    return next(error);
+    logAuthError("login", error);
+    return res.status(500).json({
+      message: "Unable to log in right now. Please try again later.",
+    });
   }
 }
 

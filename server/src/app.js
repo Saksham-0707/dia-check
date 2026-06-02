@@ -49,8 +49,15 @@ app.use("/api/user", userRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal server error",
+
+  const status = err.status || 500;
+  const message =
+    status >= 500
+      ? "Something went wrong. Please try again later."
+      : err.message || "Request failed.";
+
+  res.status(status).json({
+    message,
   });
 });
 
