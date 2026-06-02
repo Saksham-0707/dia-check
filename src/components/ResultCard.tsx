@@ -102,6 +102,17 @@ export default function ResultCard({ record, onReset }: ResultCardProps) {
           </div>
         </div>
 
+        {record.humanExplanation && (
+          <div className="mb-6 rounded-xl border border-white/80 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Simple Explanation
+            </p>
+            <p className="text-sm leading-relaxed text-foreground">
+              {record.humanExplanation}
+            </p>
+          </div>
+        )}
+
         <div className="mb-6 rounded-xl border border-white/80 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
           <p className="text-center text-xs text-muted-foreground">
             <span className="font-semibold">Medical Disclaimer:</span> This tool does not replace

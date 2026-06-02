@@ -49,6 +49,7 @@ export interface PredictionResponse {
   probability: number;
   threshold: number;
   explanation: ShapExplanation[];
+  humanExplanation?: string;
   createdAt?: string;
   saved?: boolean;
   id?: number;

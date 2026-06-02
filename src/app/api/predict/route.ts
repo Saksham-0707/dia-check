@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/server-auth";
@@ -105,6 +106,123 @@ type FastApiPrediction = {
   }>;
 };
 
+function formatFeatureImpact(item: { feature: string; impact: number }) {
+  const direction = item.impact >= 0 ? "increased risk" : "reduced risk";
+  return `${item.feature} ${direction}`;
+}
+
+function createFallbackExplanation(data: FastApiPrediction) {
+  const prediction = data.prediction === 1 ? "an elevated diabetes risk" : "no elevated diabetes risk";
+  const probability = (data.probability * 100).toFixed(1);
+  const features = (data.explanation ?? []).slice(0, 3).map(formatFeatureImpact);
+  const factorText = features.length
+    ? ` Key factors were: ${features.join(", ")}.`
+    : "";
+
+  return `The model found ${prediction} with a ${probability}% probability.${factorText} Keep healthy habits like regular activity, balanced meals, and follow up with a healthcare professional for personal advice.`;
+}
+
+function isUsableExplanation(text: string) {
+  const normalized = text.trim().toLowerCase();
+
+  if (!normalized) {
+    return false;
+  }
+
+  const blockedResponses = new Set([
+    "hello",
+    "hello there",
+    "hi",
+    "hi there",
+    "hey",
+  ]);
+
+  return !blockedResponses.has(normalized) && normalized.split(/\s+/).length >= 12;
+}
+
+async function generateExplanation(data: FastApiPrediction) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return createFallbackExplanation(data);
+  }
+
+  const modelNames = [
+    process.env.GEMINI_MODEL,
+    "gemini-2.5-flash",
+  ].filter((modelName, index, modelList): modelName is string => {
+    return Boolean(modelName) && modelList.indexOf(modelName) === index;
+  });
+
+  const prediction = data.prediction === 1 ? "Diabetic" : "Not Diabetic";
+  const probability = (data.probability * 100).toFixed(1);
+  const topFeatures = (data.explanation ?? [])
+    .slice(0, 3)
+    .map((item) => {
+      const direction = item.impact >= 0 ? "increases risk" : "reduces risk";
+      return `${item.feature} (${direction})`;
+    })
+    .join("\n");
+
+  const prompt = `You are a friendly health assistant.
+
+A user received a diabetes risk prediction.
+
+Result: ${prediction}
+Risk Probability: ${probability}%
+
+Top factors affecting this result:
+${topFeatures || "No high impact factors available."}
+
+Explain clearly and simply:
+- What this means
+- Which factors increased the risk
+- Which factors (if any) reduced the risk
+- Give 1-2 simple lifestyle suggestions
+
+Rules:
+- Keep it under 80 words
+- Use simple, non-technical language
+- Be calm and supportive (not scary)
+- Do NOT start with a greeting
+- Do NOT give medical diagnosis or treatment`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    let lastError: unknown;
+
+    for (const modelName of modelNames) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            maxOutputTokens: 120,
+            temperature: 0.3,
+          },
+        });
+        const result = await model.generateContent(prompt);
+
+        const explanation = result.response.text().trim();
+
+        if (isUsableExplanation(explanation)) {
+          return explanation;
+        }
+
+        console.warn(`Gemini model ${modelName} returned an unusable explanation.`);
+      } catch (error) {
+        lastError = error;
+        console.warn(`Gemini model ${modelName} failed. Trying fallback if available.`);
+      }
+    }
+
+    console.warn("Gemini explanation failed:", lastError);
+    return createFallbackExplanation(data);
+  } catch (error) {
+    console.warn("Gemini explanation failed:", error);
+    return createFallbackExplanation(data);
+  }
+}
+
 function shouldSaveResult(input: unknown) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return false;
@@ -203,9 +321,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const humanExplanation = await generateExplanation(predictionData);
+
     if (!saveResult) {
       return NextResponse.json({
         ...predictionData,
+        humanExplanation,
         saved: false,
       });
     }
@@ -235,6 +356,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ...predictionData,
+      humanExplanation,
       id: savedPrediction.id,
       createdAt: savedPrediction.createdAt,
       saved: true,
